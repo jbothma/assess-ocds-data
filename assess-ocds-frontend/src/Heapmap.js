@@ -3,30 +3,31 @@ import React from 'react';
 import * as d3 from 'd3';
 
 function Heatmap({ data, rowKey, colKey, valKey }) {
+  const squareSize = 40;
+  const margin = { top: 30, right: 30, bottom: 30, left: 200 };
+  const tickMargin = 10;
 
   const ref = useD3(
     (container) => {
-
       // Labels of row and columns
       const cols = [...new Set(data.map((d) => d[colKey]))];
       const rows = [...new Set(data.map((d) => d[rowKey]))];
       cols.sort();
       rows.sort();
 
-      const squareSize = 40;
       const plotWidth = cols.length * squareSize;
       const plotHeight = rows.length * squareSize;
-      const margin = { top: 30, right: 30, bottom: 30, left: 200 },
-        width = plotWidth + margin.left + margin.right,
+
+      const width = plotWidth + margin.left + margin.right,
         height = plotHeight + margin.top + margin.bottom;
+
 
       const svg = container.select("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom);
 
       const plotArea = svg.select(".plot-area")
-        .attr("transform", `translate(${margin.left}, ${margin.top})`);
-
+        .attr("transform", `translate(0, ${margin.top})`);
 
       // Build X scales and axis:
       const x = d3.scaleBand()
@@ -34,17 +35,38 @@ function Heatmap({ data, rowKey, colKey, valKey }) {
         .domain(cols)
         .padding(0.05);
       svg.select(".x-axis")
-        .attr("transform", `translate(${margin.left}, ${plotHeight + margin.top})`)
+        .attr("transform", `translate(0, ${plotHeight + margin.top})`)
         .call(d3.axisBottom(x))
 
-      // Build y scales and axis:
+      // Build y scales
       const y = d3.scaleBand()
         .range([plotHeight, 0])
         .domain(rows.reverse())
         .padding(0.05);
-      svg.select(".y-axis")
-        .call(d3.axisLeft(y))
-        .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+      // Build y axis
+      const yAxis = container
+        .selectAll(".y-axis")
+        .data(["y-axis"])
+        .join("div")
+        .attr("class", "y-axis")
+        .style("height", `${plotHeight}px`)
+        .style("width", `${margin.left}px`)
+        .style("top", `${margin.top}px`);
+      const labels = yAxis.selectAll(".labelContainer")
+        .data(rows)
+        .join("div")
+        .attr("class", "labelContainer")
+        .style("top", (d) => `${y(d)}px`)
+        .style("width", `${margin.left - tickMargin}px`)
+        .style("height", `${squareSize}px`)
+        .text((d) => d);
+
+      yAxis.selectAll(".y-tick")
+        .data(rows)
+        .join("div")
+        .attr("class", "y-tick")
+        .style("top", (d) => `${y(d) + squareSize / 2}px`);
 
       const values = data.map((d) => d[valKey]);
       const max = d3.max(values);
@@ -90,13 +112,16 @@ function Heatmap({ data, rowKey, colKey, valKey }) {
 
   return (
     <div ref={ref} className="container">
-      <svg>
+      <svg
+        style={{
+          left: `${margin.left}px`
+        }}
+      >
         <g className="plot-area" />
         <g className="x-axis" />
-        <g className="y-axis" />
       </svg>
       <div className="tooltip"></div>
-    </div>
+    </div >
   );
 }
 
